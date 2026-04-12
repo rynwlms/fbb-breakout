@@ -2,7 +2,7 @@
 
 A small browser-based Breakout clone built for the FBB Vibe Coder hiring exercise. See [`assignment-BRD.md`](assignment-BRD.md) for the original requirements.
 
-- **Live URL:** _added after first deploy_
+- **Live URL:** <https://fbb-breakout.vercel.app>
 - **Stack:** TypeScript + Vite + HTML Canvas
 - **Hosting:** Vercel (static site + edge function)
 - **Global scores:** Vercel KV (Upstash Redis) sorted set, read/written by `api/scores.ts`
