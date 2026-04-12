@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>FBB Breakout</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <header class="topbar">
+        <h1>FBB Breakout</h1>
+        <div class="stats">
+          <span>Score <b id="score">0</b></span>
+          <span>Best <b id="best">0</b></span>
+          <span>Lives <b id="lives">3</b></span>
+        </div>
+      </header>
+      <div class="stage">
+        <canvas id="game" width="800" height="600" aria-label="Breakout game"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="panel">
+            <h2 id="overlay-title">FBB Breakout</h2>
+            <p id="overlay-body">Move with the mouse or arrow keys. Click or press Space to launch.</p>
+            <button id="start-btn" type="button">Start</button>
+          </div>
+        </div>
+      </div>
+      <section class="leaderboard">
+        <h2>Global Top 10</h2>
+        <ol id="leaderboard-list"><li class="empty">Loading…</li></ol>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
