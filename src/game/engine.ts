@@ -165,7 +165,7 @@ export class Game {
         vy: Math.sin(angle) * speed,
         life: maxLife,
         maxLife,
-        size: 1.2 + Math.random() * 1.8,
+        size: 2.0 + Math.random() * 2.6,
       });
     }
     if (this.sparks.length > 220) this.sparks.splice(0, this.sparks.length - 220);
@@ -235,12 +235,13 @@ export class Game {
       for (const s of this.sparks) {
         const t = Math.max(0, s.life / s.maxLife);
         const alpha = Math.min(1, t * 1.2);
-        ctx.strokeStyle = `rgba(255, 190, 80, ${alpha})`;
-        ctx.lineWidth = Math.max(0.7, s.size);
+        // Warmer orange sparks for visibility.
+        ctx.strokeStyle = `rgba(255, 122, 26, ${alpha})`;
+        ctx.lineWidth = Math.max(1.1, s.size);
         ctx.beginPath();
         // Short streak in direction of travel
-        const dx = -s.vx * 0.01;
-        const dy = -s.vy * 0.01;
+        const dx = -s.vx * 0.015;
+        const dy = -s.vy * 0.015;
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(s.x + dx, s.y + dy);
         ctx.stroke();
