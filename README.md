@@ -6,7 +6,7 @@ A small browser-based Breakout clone built for the FBB Vibe Coder hiring exercis
 - **Stack:** TypeScript + Vite + HTML Canvas
 - **Hosting:** Vercel (static site + edge function)
 - **Global scores:** Vercel KV (Upstash Redis) sorted set, read/written by `api/scores.ts`
-- **Day 2 collaborator:** Trice
+- **Day 2 collaborator:** Trice (tcommerford)
 
 ## How to Play
 
