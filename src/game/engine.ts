@@ -151,29 +151,33 @@ export class Game {
   }
 
   private spawnSparks(x: number, y: number, ballVx: number): void {
-    // Keep it cheap: small burst, short lifetime, capped total particles.
-    const count = 10 + Math.floor(Math.random() * 6);
+    // Bigger burst + faster particles for a more dramatic hit effect.
+    const count = 22 + Math.floor(Math.random() * 14);
     const baseDir = ballVx >= 0 ? 1 : -1;
+    const speedBoost = Math.min(1.35, Math.hypot(ballVx, 0) / 520);
     for (let i = 0; i < count; i++) {
-      const speed = 140 + Math.random() * 220;
-      const angle = (-Math.PI / 2 + (Math.random() - 0.5) * 0.9) + baseDir * (Math.random() - 0.5) * 0.25;
-      const maxLife = 0.18 + Math.random() * 0.14;
+      const speed = (220 + Math.random() * 340) * (1 + speedBoost * 0.35);
+      const angle =
+        -Math.PI / 2 +
+        (Math.random() - 0.5) * 1.35 +
+        baseDir * (Math.random() - 0.5) * 0.55;
+      const maxLife = 0.22 + Math.random() * 0.2;
       this.sparks.push({
-        x: x + (Math.random() - 0.5) * 6,
-        y: y + (Math.random() - 0.5) * 2,
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 4,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: maxLife,
         maxLife,
-        size: 2.5 + Math.random() * 3.25,
+        size: 3.2 + Math.random() * 4.2,
       });
     }
-    if (this.sparks.length > 220) this.sparks.splice(0, this.sparks.length - 220);
+    if (this.sparks.length > 380) this.sparks.splice(0, this.sparks.length - 380);
   }
 
   private updateSparks(dt: number): void {
     if (this.sparks.length === 0) return;
-    const gravity = 900;
+    const gravity = 720;
     for (let i = this.sparks.length - 1; i >= 0; i--) {
       const s = this.sparks[i]!;
       s.life -= dt;
@@ -185,8 +189,8 @@ export class Game {
       s.x += s.vx * dt;
       s.y += s.vy * dt;
       // simple air drag
-      s.vx *= 0.98;
-      s.vy *= 0.98;
+      s.vx *= 0.992;
+      s.vy *= 0.992;
     }
   }
 
@@ -232,18 +236,29 @@ export class Game {
     if (this.sparks.length > 0) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
-      for (const s of this.sparks) {
+      for (let i = 0; i < this.sparks.length; i++) {
+        const s = this.sparks[i]!;
         const t = Math.max(0, s.life / s.maxLife);
-        const alpha = Math.min(1, t * 1.2);
-        // Warmer orange sparks for visibility.
-        ctx.strokeStyle = `rgba(255, 122, 26, ${alpha})`;
-        ctx.lineWidth = Math.max(1.4, s.size);
+        const alpha = Math.min(1, t * 1.35);
+        // Stable per-particle streak length (no randomness in draw — avoids flicker).
+        const streak = 0.028 + (i % 5) * 0.0015;
+        const dx = -s.vx * streak;
+        const dy = -s.vy * streak;
+
+        // Outer warm orange
+        ctx.strokeStyle = `rgba(255, 122, 26, ${alpha * 0.85})`;
+        ctx.lineWidth = Math.max(1.8, s.size * 1.15);
         ctx.beginPath();
-        // Short streak in direction of travel
-        const dx = -s.vx * 0.01875;
-        const dy = -s.vy * 0.01875;
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(s.x + dx, s.y + dy);
+        ctx.stroke();
+
+        // Hot yellow-white core
+        ctx.strokeStyle = `rgba(255, 245, 200, ${alpha})`;
+        ctx.lineWidth = Math.max(1.0, s.size * 0.55);
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x + dx * 0.55, s.y + dy * 0.55);
         ctx.stroke();
       }
       ctx.restore();
