@@ -178,10 +178,85 @@ export class Game {
     ctx.fillStyle = "#e6e8eb";
     ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
 
+    const bx = this.ball.x;
+    const by = this.ball.y;
+    const br = this.ball.radius;
+
+    // Baseball-like ball: subtle shading + red stitching.
     ctx.beginPath();
-    ctx.fillStyle = "#ffffff";
-    ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+    const highlightX = bx - br * 0.35;
+    const highlightY = by - br * 0.35;
+    const ballGrad = ctx.createRadialGradient(highlightX, highlightY, br * 0.2, bx, by, br);
+    ballGrad.addColorStop(0, "#ffffff");
+    ballGrad.addColorStop(0.65, "#f4f6f8");
+    ballGrad.addColorStop(1, "#d8dde3");
+    ctx.fillStyle = ballGrad;
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
     ctx.fill();
+
+    // Outline
+    ctx.strokeStyle = "rgba(0,0,0,0.22)";
+    ctx.lineWidth = Math.max(0.6, br * 0.12);
+    ctx.stroke();
+
+    // Seams
+    const seamColor = "#c62828";
+    ctx.strokeStyle = seamColor;
+    ctx.lineWidth = Math.max(0.6, br * 0.14);
+    ctx.lineCap = "round";
+
+    // Two curved seams (left/right), using bezier curves.
+    const seamOffsetX = br * 0.55;
+    const seamOffsetY = br * 0.75;
+    const seamCpX = br * 0.95;
+    const seamCpY = br * 0.15;
+
+    ctx.beginPath();
+    ctx.moveTo(bx - seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(
+      bx - seamCpX,
+      by - seamCpY,
+      bx - seamCpX,
+      by + seamCpY,
+      bx - seamOffsetX,
+      by + seamOffsetY,
+    );
+    ctx.moveTo(bx + seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(
+      bx + seamCpX,
+      by - seamCpY,
+      bx + seamCpX,
+      by + seamCpY,
+      bx + seamOffsetX,
+      by + seamOffsetY,
+    );
+    ctx.stroke();
+
+    // Small stitch marks along each seam.
+    ctx.lineWidth = Math.max(0.6, br * 0.1);
+    const stitchCount = 7;
+    const stitchLen = br * 0.22;
+    for (let i = 0; i < stitchCount; i++) {
+      const t = (i + 1) / (stitchCount + 1);
+      const y = by - seamOffsetY + t * (seamOffsetY * 2);
+      const wobble = Math.sin(t * Math.PI) * br * 0.08;
+
+      // Left seam stitches (angle alternates a bit)
+      const lx = bx - seamOffsetX - wobble;
+      const la = (i % 2 === 0 ? 1 : -1) * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(lx - Math.cos(la) * stitchLen * 0.5, y - Math.sin(la) * stitchLen * 0.5);
+      ctx.lineTo(lx + Math.cos(la) * stitchLen * 0.5, y + Math.sin(la) * stitchLen * 0.5);
+      ctx.stroke();
+
+      // Right seam stitches
+      const rx = bx + seamOffsetX + wobble;
+      const ra = (i % 2 === 0 ? -1 : 1) * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(rx - Math.cos(ra) * stitchLen * 0.5, y - Math.sin(ra) * stitchLen * 0.5);
+      ctx.lineTo(rx + Math.cos(ra) * stitchLen * 0.5, y + Math.sin(ra) * stitchLen * 0.5);
+      ctx.stroke();
+    }
   }
 
   private bindInput(): void {
