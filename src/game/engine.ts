@@ -182,7 +182,7 @@ export class Game {
     const by = this.ball.y;
     const br = this.ball.radius;
 
-    // Baseball-like ball: subtle shading + red stitching.
+    // Baseball-like ball: stronger seams/stitches for readability.
     ctx.beginPath();
     const highlightX = bx - br * 0.35;
     const highlightY = by - br * 0.35;
@@ -199,64 +199,71 @@ export class Game {
     ctx.lineWidth = Math.max(0.6, br * 0.12);
     ctx.stroke();
 
-    // Seams
-    const seamColor = "#c62828";
-    ctx.strokeStyle = seamColor;
-    ctx.lineWidth = Math.max(0.6, br * 0.14);
+    // Seam rendering (clipped to ball for a cleaner look).
+    const seamColor = "#c1121f";
+    const seamShadow = "rgba(0,0,0,0.18)";
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Slight rotation so the seams aren't perfectly vertical.
+    ctx.translate(bx, by);
+    ctx.rotate(-0.45);
+    ctx.translate(-bx, -by);
+
+    const seamOffsetX = br * 0.58;
+    const seamOffsetY = br * 0.82;
+    const seamCpX = br * 1.02;
+    const seamCpY = br * 0.12;
+
+    // Draw seam shadow for contrast.
+    ctx.strokeStyle = seamShadow;
     ctx.lineCap = "round";
-
-    // Two curved seams (left/right), using bezier curves.
-    const seamOffsetX = br * 0.55;
-    const seamOffsetY = br * 0.75;
-    const seamCpX = br * 0.95;
-    const seamCpY = br * 0.15;
-
+    ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(0.9, br * 0.22);
     ctx.beginPath();
     ctx.moveTo(bx - seamOffsetX, by - seamOffsetY);
-    ctx.bezierCurveTo(
-      bx - seamCpX,
-      by - seamCpY,
-      bx - seamCpX,
-      by + seamCpY,
-      bx - seamOffsetX,
-      by + seamOffsetY,
-    );
+    ctx.bezierCurveTo(bx - seamCpX, by - seamCpY, bx - seamCpX, by + seamCpY, bx - seamOffsetX, by + seamOffsetY);
     ctx.moveTo(bx + seamOffsetX, by - seamOffsetY);
-    ctx.bezierCurveTo(
-      bx + seamCpX,
-      by - seamCpY,
-      bx + seamCpX,
-      by + seamCpY,
-      bx + seamOffsetX,
-      by + seamOffsetY,
-    );
+    ctx.bezierCurveTo(bx + seamCpX, by - seamCpY, bx + seamCpX, by + seamCpY, bx + seamOffsetX, by + seamOffsetY);
     ctx.stroke();
 
-    // Small stitch marks along each seam.
-    ctx.lineWidth = Math.max(0.6, br * 0.1);
-    const stitchCount = 7;
-    const stitchLen = br * 0.22;
+    // Main seam line.
+    ctx.strokeStyle = seamColor;
+    ctx.lineWidth = Math.max(0.9, br * 0.18);
+    ctx.beginPath();
+    ctx.moveTo(bx - seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(bx - seamCpX, by - seamCpY, bx - seamCpX, by + seamCpY, bx - seamOffsetX, by + seamOffsetY);
+    ctx.moveTo(bx + seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(bx + seamCpX, by - seamCpY, bx + seamCpX, by + seamCpY, bx + seamOffsetX, by + seamOffsetY);
+    ctx.stroke();
+
+    // Stitch marks.
+    const stitchCount = 11;
+    const stitchLen = br * 0.26;
+    ctx.lineWidth = Math.max(0.8, br * 0.12);
     for (let i = 0; i < stitchCount; i++) {
       const t = (i + 1) / (stitchCount + 1);
       const y = by - seamOffsetY + t * (seamOffsetY * 2);
-      const wobble = Math.sin(t * Math.PI) * br * 0.08;
+      const wobble = Math.sin(t * Math.PI) * br * 0.11;
 
-      // Left seam stitches (angle alternates a bit)
       const lx = bx - seamOffsetX - wobble;
-      const la = (i % 2 === 0 ? 1 : -1) * 0.7;
+      const la = (i % 2 === 0 ? 1 : -1) * 0.9;
       ctx.beginPath();
       ctx.moveTo(lx - Math.cos(la) * stitchLen * 0.5, y - Math.sin(la) * stitchLen * 0.5);
       ctx.lineTo(lx + Math.cos(la) * stitchLen * 0.5, y + Math.sin(la) * stitchLen * 0.5);
       ctx.stroke();
 
-      // Right seam stitches
       const rx = bx + seamOffsetX + wobble;
-      const ra = (i % 2 === 0 ? -1 : 1) * 0.7;
+      const ra = (i % 2 === 0 ? -1 : 1) * 0.9;
       ctx.beginPath();
       ctx.moveTo(rx - Math.cos(ra) * stitchLen * 0.5, y - Math.sin(ra) * stitchLen * 0.5);
       ctx.lineTo(rx + Math.cos(ra) * stitchLen * 0.5, y + Math.sin(ra) * stitchLen * 0.5);
       ctx.stroke();
     }
+
+    ctx.restore();
   }
 
   private bindInput(): void {
