@@ -24,6 +24,16 @@ const INITIAL_SPEED = 340;
 const MAX_SPEED = 620;
 const SPEED_PER_BRICK = 2.2;
 
+type Spark = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+};
+
 export class Game {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly canvas: HTMLCanvasElement;
@@ -32,6 +42,7 @@ export class Game {
   private paddle: Paddle = createPaddle();
   private ball: Ball = createBall();
   private bricks: Brick[] = createBricks();
+  private sparks: Spark[] = [];
 
   private state: GameState = "ready";
   private score = 0;
@@ -73,6 +84,7 @@ export class Game {
     this.paddle = createPaddle();
     this.ball = createBall();
     this.bricks = createBricks();
+    this.sparks = [];
     this.score = 0;
     this.lives = INITIAL_LIVES;
     this.speed = INITIAL_SPEED;
@@ -104,6 +116,7 @@ export class Game {
     if (this.state === "ready") {
       this.ball.x = this.paddle.x + this.paddle.width / 2;
       this.ball.y = this.paddle.y - this.ball.radius - 1;
+      this.updateSparks(dt);
       return;
     }
     this.ball.x += this.ball.vx * dt;
@@ -113,7 +126,11 @@ export class Game {
       this.loseLife();
       return;
     }
-    collidePaddle(this.ball, this.paddle);
+    const paddleHit = collidePaddle(this.ball, this.paddle);
+    if (paddleHit) {
+      // Spawn sparks at the bottom of the ball near the paddle surface.
+      this.spawnSparks(this.ball.x, this.paddle.y, this.ball.vx);
+    }
     const hit = collideBricks(this.ball, this.bricks);
     if (hit) {
       this.score += brickPoints(hit.brick.row);
@@ -128,6 +145,52 @@ export class Game {
       if (this.bricks.every((b) => !b.alive)) {
         this.setState("won");
       }
+    }
+
+    this.updateSparks(dt);
+  }
+
+  private spawnSparks(x: number, y: number, ballVx: number): void {
+    // Bigger burst + faster particles for a more dramatic hit effect.
+    const count = 22 + Math.floor(Math.random() * 14);
+    const baseDir = ballVx >= 0 ? 1 : -1;
+    const speedBoost = Math.min(1.35, Math.hypot(ballVx, 0) / 520);
+    for (let i = 0; i < count; i++) {
+      const speed = (220 + Math.random() * 340) * (1 + speedBoost * 0.35);
+      const angle =
+        -Math.PI / 2 +
+        (Math.random() - 0.5) * 1.35 +
+        baseDir * (Math.random() - 0.5) * 0.55;
+      const maxLife = 0.22 + Math.random() * 0.2;
+      this.sparks.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 4,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: maxLife,
+        maxLife,
+        size: 3.2 + Math.random() * 4.2,
+      });
+    }
+    if (this.sparks.length > 380) this.sparks.splice(0, this.sparks.length - 380);
+  }
+
+  private updateSparks(dt: number): void {
+    if (this.sparks.length === 0) return;
+    const gravity = 720;
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const s = this.sparks[i]!;
+      s.life -= dt;
+      if (s.life <= 0) {
+        this.sparks.splice(i, 1);
+        continue;
+      }
+      s.vy += gravity * dt;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      // simple air drag
+      s.vx *= 0.992;
+      s.vy *= 0.992;
     }
   }
 
@@ -169,6 +232,38 @@ export class Game {
     ctx.fillStyle = "#05070a";
     ctx.fillRect(0, 0, WORLD.width, WORLD.height);
 
+    // Sparks (behind everything except background)
+    if (this.sparks.length > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < this.sparks.length; i++) {
+        const s = this.sparks[i]!;
+        const t = Math.max(0, s.life / s.maxLife);
+        const alpha = Math.min(1, t * 1.35);
+        // Stable per-particle streak length (no randomness in draw — avoids flicker).
+        const streak = 0.028 + (i % 5) * 0.0015;
+        const dx = -s.vx * streak;
+        const dy = -s.vy * streak;
+
+        // Outer warm orange
+        ctx.strokeStyle = `rgba(255, 122, 26, ${alpha * 0.85})`;
+        ctx.lineWidth = Math.max(1.8, s.size * 1.15);
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x + dx, s.y + dy);
+        ctx.stroke();
+
+        // Hot yellow-white core
+        ctx.strokeStyle = `rgba(255, 245, 200, ${alpha})`;
+        ctx.lineWidth = Math.max(1.0, s.size * 0.55);
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x + dx * 0.55, s.y + dy * 0.55);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     for (const brick of this.bricks) {
       if (!brick.alive) continue;
       ctx.fillStyle = BRICK_ROW_COLORS[brick.row % BRICK_ROW_COLORS.length]!;
@@ -178,10 +273,92 @@ export class Game {
     ctx.fillStyle = "#e6e8eb";
     ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
 
+    const bx = this.ball.x;
+    const by = this.ball.y;
+    const br = this.ball.radius;
+
+    // Baseball-like ball: stronger seams/stitches for readability.
     ctx.beginPath();
-    ctx.fillStyle = "#ffffff";
-    ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+    const highlightX = bx - br * 0.35;
+    const highlightY = by - br * 0.35;
+    const ballGrad = ctx.createRadialGradient(highlightX, highlightY, br * 0.2, bx, by, br);
+    ballGrad.addColorStop(0, "#ffffff");
+    ballGrad.addColorStop(0.65, "#f4f6f8");
+    ballGrad.addColorStop(1, "#d8dde3");
+    ctx.fillStyle = ballGrad;
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
     ctx.fill();
+
+    // Outline
+    ctx.strokeStyle = "rgba(0,0,0,0.22)";
+    ctx.lineWidth = Math.max(0.6, br * 0.12);
+    ctx.stroke();
+
+    // Seam rendering (clipped to ball for a cleaner look).
+    const seamColor = "#c1121f";
+    const seamShadow = "rgba(0,0,0,0.18)";
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Slight rotation so the seams aren't perfectly vertical.
+    ctx.translate(bx, by);
+    ctx.rotate(-0.45);
+    ctx.translate(-bx, -by);
+
+    const seamOffsetX = br * 0.58;
+    const seamOffsetY = br * 0.82;
+    const seamCpX = br * 1.02;
+    const seamCpY = br * 0.12;
+
+    // Draw seam shadow for contrast.
+    ctx.strokeStyle = seamShadow;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(0.9, br * 0.22);
+    ctx.beginPath();
+    ctx.moveTo(bx - seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(bx - seamCpX, by - seamCpY, bx - seamCpX, by + seamCpY, bx - seamOffsetX, by + seamOffsetY);
+    ctx.moveTo(bx + seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(bx + seamCpX, by - seamCpY, bx + seamCpX, by + seamCpY, bx + seamOffsetX, by + seamOffsetY);
+    ctx.stroke();
+
+    // Main seam line.
+    ctx.strokeStyle = seamColor;
+    ctx.lineWidth = Math.max(0.9, br * 0.18);
+    ctx.beginPath();
+    ctx.moveTo(bx - seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(bx - seamCpX, by - seamCpY, bx - seamCpX, by + seamCpY, bx - seamOffsetX, by + seamOffsetY);
+    ctx.moveTo(bx + seamOffsetX, by - seamOffsetY);
+    ctx.bezierCurveTo(bx + seamCpX, by - seamCpY, bx + seamCpX, by + seamCpY, bx + seamOffsetX, by + seamOffsetY);
+    ctx.stroke();
+
+    // Stitch marks.
+    const stitchCount = 11;
+    const stitchLen = br * 0.26;
+    ctx.lineWidth = Math.max(0.8, br * 0.12);
+    for (let i = 0; i < stitchCount; i++) {
+      const t = (i + 1) / (stitchCount + 1);
+      const y = by - seamOffsetY + t * (seamOffsetY * 2);
+      const wobble = Math.sin(t * Math.PI) * br * 0.11;
+
+      const lx = bx - seamOffsetX - wobble;
+      const la = (i % 2 === 0 ? 1 : -1) * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(lx - Math.cos(la) * stitchLen * 0.5, y - Math.sin(la) * stitchLen * 0.5);
+      ctx.lineTo(lx + Math.cos(la) * stitchLen * 0.5, y + Math.sin(la) * stitchLen * 0.5);
+      ctx.stroke();
+
+      const rx = bx + seamOffsetX + wobble;
+      const ra = (i % 2 === 0 ? -1 : 1) * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(rx - Math.cos(ra) * stitchLen * 0.5, y - Math.sin(ra) * stitchLen * 0.5);
+      ctx.lineTo(rx + Math.cos(ra) * stitchLen * 0.5, y + Math.sin(ra) * stitchLen * 0.5);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
 
   private bindInput(): void {
