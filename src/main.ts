@@ -25,12 +25,16 @@ const game = new Game(canvas, {
   onStateChange: (state) => handleStateChange(state),
 });
 
+let lastState: GameState = "ready";
+let hasStarted = false;
+
 async function refreshLeaderboard(): Promise<void> {
   const { entries, enabled } = await fetchLeaderboard();
   renderLeaderboard(entries, enabled);
 }
 
 function handleStateChange(state: GameState): void {
+  lastState = state;
   if (state === "ready") {
     showOverlay(
       "Get Ready",
@@ -94,6 +98,15 @@ function renderSubmitPanel(score: number): void {
 
 hud.startBtn.addEventListener("click", () => {
   document.getElementById("submit-form")?.remove();
+  if (!hasStarted) {
+    hasStarted = true;
+    game.start();
+    return;
+  }
+  if (lastState === "ready") {
+    game.launchBall();
+    return;
+  }
   game.start();
 });
 
