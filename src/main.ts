@@ -7,6 +7,7 @@ import {
   renderLeaderboard,
   setBest,
   setLives,
+  setRound,
   setScore,
   showOverlay,
 } from "./ui/hud";
@@ -20,6 +21,7 @@ setBest(best);
 const game = new Game(canvas, {
   onScoreChange: (score) => setScore(score),
   onLivesChange: (lives) => setLives(lives),
+  onRoundChange: (round, total) => setRound(round, total),
   onStateChange: (state) => handleStateChange(state),
 });
 
@@ -102,4 +104,5 @@ showOverlay(
 );
 setScore(0);
 setLives(3);
+setRound(1, 3);
 void refreshLeaderboard();

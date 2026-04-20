@@ -10,6 +10,8 @@ export const hud = {
   score: el<HTMLElement>("score"),
   best: el<HTMLElement>("best"),
   lives: el<HTMLElement>("lives"),
+  round: el<HTMLElement>("round"),
+  roundTotal: el<HTMLElement>("round-total"),
   overlay: el<HTMLDivElement>("overlay"),
   overlayTitle: el<HTMLHeadingElement>("overlay-title"),
   overlayBody: el<HTMLParagraphElement>("overlay-body"),
@@ -27,6 +29,11 @@ export function setBest(value: number): void {
 
 export function setLives(value: number): void {
   hud.lives.textContent = String(Math.max(0, value));
+}
+
+export function setRound(round: number, total: number): void {
+  hud.round.textContent = String(Math.max(1, round));
+  hud.roundTotal.textContent = String(Math.max(1, total));
 }
 
 export function showOverlay(title: string, body: string, buttonLabel = "Start"): void {

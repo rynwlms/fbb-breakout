@@ -16,10 +16,12 @@ export type GameState = "ready" | "playing" | "gameover" | "won";
 export interface GameEvents {
   onScoreChange: (score: number) => void;
   onLivesChange: (lives: number) => void;
+  onRoundChange: (round: number, totalRounds: number) => void;
   onStateChange: (state: GameState) => void;
 }
 
 const INITIAL_LIVES = 3;
+const TOTAL_ROUNDS = 3;
 const INITIAL_SPEED = 340;
 const MAX_SPEED = 620;
 const SPEED_PER_BRICK = 2.2;
@@ -47,6 +49,7 @@ export class Game {
   private state: GameState = "ready";
   private score = 0;
   private lives = INITIAL_LIVES;
+  private round = 1;
   private speed = INITIAL_SPEED;
 
   private keys = new Set<string>();
@@ -87,9 +90,11 @@ export class Game {
     this.sparks = [];
     this.score = 0;
     this.lives = INITIAL_LIVES;
+    this.round = 1;
     this.speed = INITIAL_SPEED;
     this.events.onScoreChange(this.score);
     this.events.onLivesChange(this.lives);
+    this.events.onRoundChange(this.round, TOTAL_ROUNDS);
   }
 
   private setState(state: GameState): void {
@@ -143,6 +148,17 @@ export class Game {
         this.ball.vy *= scale;
       }
       if (this.bricks.every((b) => !b.alive)) {
+        if (this.round < TOTAL_ROUNDS) {
+          this.round += 1;
+          this.events.onRoundChange(this.round, TOTAL_ROUNDS);
+          this.paddle = createPaddle();
+          this.ball = createBall();
+          this.bricks = createBricks();
+          this.sparks = [];
+          this.speed = INITIAL_SPEED;
+          this.setState("ready");
+          return;
+        }
         this.setState("won");
       }
     }
