@@ -270,7 +270,7 @@ export class Game {
       ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
     }
 
-    ctx.fillStyle = "#e6e8eb";
+    ctx.fillStyle = "#ff5577";
     ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
 
     const bx = this.ball.x;
