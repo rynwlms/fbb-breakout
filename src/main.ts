@@ -7,6 +7,7 @@ import {
   renderLeaderboard,
   setBest,
   setLives,
+  setRound,
   setScore,
   showOverlay,
 } from "./ui/hud";
@@ -20,8 +21,12 @@ setBest(best);
 const game = new Game(canvas, {
   onScoreChange: (score) => setScore(score),
   onLivesChange: (lives) => setLives(lives),
+  onRoundChange: (round, total) => setRound(round, total),
   onStateChange: (state) => handleStateChange(state),
 });
+
+let lastState: GameState = "ready";
+let hasStarted = false;
 
 async function refreshLeaderboard(): Promise<void> {
   const { entries, enabled } = await fetchLeaderboard();
@@ -29,6 +34,7 @@ async function refreshLeaderboard(): Promise<void> {
 }
 
 function handleStateChange(state: GameState): void {
+  lastState = state;
   if (state === "ready") {
     showOverlay(
       "Get Ready",
@@ -92,6 +98,15 @@ function renderSubmitPanel(score: number): void {
 
 hud.startBtn.addEventListener("click", () => {
   document.getElementById("submit-form")?.remove();
+  if (!hasStarted) {
+    hasStarted = true;
+    game.start();
+    return;
+  }
+  if (lastState === "ready") {
+    game.launchBall();
+    return;
+  }
   game.start();
 });
 
@@ -102,4 +117,5 @@ showOverlay(
 );
 setScore(0);
 setLives(3);
+setRound(1, 3);
 void refreshLeaderboard();
